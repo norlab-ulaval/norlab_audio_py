@@ -1,7 +1,6 @@
 /**:
   audio_capture:
     ros__parameters:
-      dst: "appsink"
       device: ""
       channels: 1
       sample_rate: 44100
