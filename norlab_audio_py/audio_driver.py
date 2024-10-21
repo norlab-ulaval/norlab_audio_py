@@ -32,10 +32,8 @@ class AudioRecorder(Node):
         def callback(indata, frames, time, status):
             if status:
                 self.get_logger().warn(status)
-            print("indata: ", len(indata))
             self.publish_audio(indata.copy())
 
-        print("sample rate: ", self.sample_rate)
         with sd.InputStream(
             samplerate=self.sample_rate,
             channels=self.channels,
@@ -49,7 +47,6 @@ class AudioRecorder(Node):
 
     def publish_audio(self, data):
         # Concatenate audio frames and convert to uint8
-        print(len(data))
         msg = AudioDataStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = self.frame_id
@@ -57,7 +54,6 @@ class AudioRecorder(Node):
             (data * 32767).astype(np.int16).tobytes()
         )  # Convert to int16 and then to bytes
         self.publisher.publish(msg)
-        self.get_logger().info("Published audio data.")
 
         # Create and publish AudioInfo
         info_msg = AudioInfo()
@@ -65,7 +61,7 @@ class AudioRecorder(Node):
         info_msg.sample_rate = self.sample_rate
 
         self.info_publisher.publish(info_msg)
-        self.get_logger().info("Published audio info.")
+        self.get_logger().debug("Published audio data and info.")
 
 
 def main(args=None):
