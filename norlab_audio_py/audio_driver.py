@@ -10,7 +10,6 @@ class AudioRecorder(Node):
         super().__init__("audio_recorder")
 
         # Declare parameters
-        self.declare_parameter("format", "wave")  # "wave" or "mp3"
         self.declare_parameter("device", "")
         self.declare_parameter("bitrate", 128)
         self.declare_parameter("channels", 1)
@@ -18,7 +17,6 @@ class AudioRecorder(Node):
         self.declare_parameter("frame_id", "microphone")
 
         # Load parameters
-        self.format = self.get_parameter("format").value
         self.device = self.get_parameter("device").value
         self.channels = self.get_parameter("channels").value
         self.sample_rate = self.get_parameter("sample_rate").value
@@ -65,7 +63,6 @@ class AudioRecorder(Node):
         info_msg = AudioInfo()
         info_msg.channels = self.channels
         info_msg.sample_rate = self.sample_rate
-        info_msg.coding_format = self.format
 
         self.info_publisher.publish(info_msg)
         self.get_logger().info("Published audio info.")

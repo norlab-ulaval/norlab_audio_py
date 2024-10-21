@@ -3,7 +3,6 @@
     ros__parameters:
       dst: "appsink"
       device: ""
-      format: "wave" # "wave" or "mp3"
       channels: 1
       sample_rate: 44100
       sample_format: "S16LE"
