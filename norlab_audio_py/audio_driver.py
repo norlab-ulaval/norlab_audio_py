@@ -7,7 +7,7 @@ from audio_common_msgs.msg import AudioDataStamped, AudioInfo
 
 class AudioRecorder(Node):
     def __init__(self):
-        super().__init__("audio_recorder")
+        super().__init__("audio_driver")
 
         # Declare parameters
         self.declare_parameter("device", "")
