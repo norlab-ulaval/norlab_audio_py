@@ -17,6 +17,7 @@
 
   <exec_depend>std_msgs</exec_depend>
 
+  <exec_depend>libportaudio2</exec_depend>
   <!-- <exec_depend>audio_common_msgs</exec_depend> -->
   <!-- <exec_depend>pywave</exec_depend> -->
 
