@@ -1,0 +1,11 @@
+/**:
+  audio_capture:
+    ros__parameters:
+      dst: "appsink"
+      capture_device: ""
+      format: "wave" # "wave" or "mp3"
+      bitrate: 128
+      channels: 1
+      depth: 16
+      sample_rate: 16000
+      sample_format: "S16LE"
