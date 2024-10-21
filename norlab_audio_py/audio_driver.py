@@ -11,24 +11,17 @@ class AudioRecorder(Node):
 
         # Declare parameters
         self.declare_parameter("format", "wave")  # "wave" or "mp3"
-        self.declare_parameter("device", "hw:1,0")
+        self.declare_parameter("device", "")
         self.declare_parameter("bitrate", 128)
         self.declare_parameter("channels", 1)
-        self.declare_parameter("depth", 16)
         self.declare_parameter("sample_rate", 44100)
-        self.declare_parameter("sample_format", "S16LE")
-        self.declare_parameter("filename", "output")
         self.declare_parameter("frame_id", "microphone")
 
         # Load parameters
         self.format = self.get_parameter("format").value
         self.device = self.get_parameter("device").value
-        self.bitrate = self.get_parameter("bitrate").value
         self.channels = self.get_parameter("channels").value
-        self.depth = self.get_parameter("depth").value
         self.sample_rate = self.get_parameter("sample_rate").value
-        self.sample_format = self.get_parameter("sample_format").value
-        self.filename = self.get_parameter("filename").value
         self.frame_id = self.get_parameter("frame_id").value
 
         self.publisher = self.create_publisher(AudioDataStamped, "audio_stamped", 10)
@@ -72,8 +65,6 @@ class AudioRecorder(Node):
         info_msg = AudioInfo()
         info_msg.channels = self.channels
         info_msg.sample_rate = self.sample_rate
-        info_msg.sample_format = self.sample_format
-        info_msg.bitrate = self.bitrate
         info_msg.coding_format = self.format
 
         self.info_publisher.publish(info_msg)
