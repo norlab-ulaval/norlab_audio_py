@@ -1,0 +1,7 @@
+/**:
+  audio_capture:
+    ros__parameters:
+      filename: "audio"
+      format: "wave" # "wave" or "mp3"
+      channels: 1
+      sample_rate: 44100
