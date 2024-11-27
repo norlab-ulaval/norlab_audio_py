@@ -31,6 +31,7 @@ class AudioRecorder(Node):
         self.audio_queue = Queue()
         self.running = True
 
+        self.timestamp_offset = None
         self.worker_thread = Thread(target=self.process_audio_queue)
         self.worker_thread.start()
 
@@ -51,7 +52,7 @@ class AudioRecorder(Node):
         def callback(indata, frames, time, status):
             if status:
                 self.get_logger().warn(f"{time}: {status}")
-            self.audio_queue.put(indata.copy())
+            self.audio_queue.put((time, indata.copy()))
 
         try:
             with sd.InputStream(
@@ -59,8 +60,8 @@ class AudioRecorder(Node):
                 channels=self.channels,
                 device=self.device,
                 callback=callback,
-                dtype="float32",
-                blocksize=4096,
+                dtype="int16",
+                blocksize=self.sample_rate, # 1 second buffer
             ):
                 while self.running:
                     rclpy.spin_once(self, timeout_sec=0.1)  # Keep the ROS 2 node alive
@@ -73,14 +74,18 @@ class AudioRecorder(Node):
     def process_audio_queue(self):
         while self.running or not self.audio_queue.empty():
             if not self.audio_queue.empty():
-                data = self.audio_queue.get()
-                self.publish_audio(data)
+                timestamp, data = self.audio_queue.get()
+                if self.timestamp_offset is None:
+                    self.timestamp_offset = self.get_clock().now().nanoseconds/1e9 - timestamp.inputBufferAdcTime
 
-    def publish_audio(self, data):
+                self.publish_audio(timestamp.inputBufferAdcTime + self.timestamp_offset, data)
+
+    def publish_audio(self, timestamp, data):
         msg = AudioDataStamped()
-        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.stamp.sec = int(timestamp)
+        msg.header.stamp.nanosec = int((timestamp % 1) * 1e9)
         msg.header.frame_id = self.frame_id
-        msg.audio.data = (data * 32767).astype(np.int16).tobytes()
+        msg.audio.data = (data).tobytes()
         self.publisher.publish(msg)
 
         info_msg = AudioInfo()
