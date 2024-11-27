@@ -3,6 +3,8 @@ from rclpy.node import Node
 import sounddevice as sd
 import numpy as np
 import time
+from queue import Queue
+from threading import Thread
 from audio_common_msgs.msg import AudioDataStamped, AudioInfo
 
 
@@ -26,8 +28,13 @@ class AudioRecorder(Node):
         self.publisher = self.create_publisher(AudioDataStamped, "audio_stamped", 10)
         self.info_publisher = self.create_publisher(AudioInfo, "info", 10)
 
+        self.audio_queue = Queue()
+        self.running = True
+
+        self.worker_thread = Thread(target=self.process_audio_queue)
+        self.worker_thread.start()
+
         while True:
-            # Check if the specified device is available
             sd._terminate()
             sd._initialize()
             device_names = [device['name'] for device in sd.query_devices()]
@@ -44,7 +51,7 @@ class AudioRecorder(Node):
         def callback(indata, frames, time, status):
             if status:
                 self.get_logger().warn(f"{time}: {status}")
-            self.publish_audio(indata.copy())
+            self.audio_queue.put(indata.copy())
 
         try:
             with sd.InputStream(
@@ -55,37 +62,47 @@ class AudioRecorder(Node):
                 dtype="float32",
                 blocksize=4096,
             ):
-                while True:
-                    rclpy.spin_once(self)  # Keep the ROS 2 node alive
+                while self.running:
+                    rclpy.spin_once(self, timeout_sec=0.1)  # Keep the ROS 2 node alive
         except ValueError as e:
             self.get_logger().error(f"The ALSA device does not exist: {e}")
+        finally:
+            self.running = False
+            self.worker_thread.join()
+
+    def process_audio_queue(self):
+        while self.running or not self.audio_queue.empty():
+            if not self.audio_queue.empty():
+                data = self.audio_queue.get()
+                self.publish_audio(data)
 
     def publish_audio(self, data):
-        # Concatenate audio frames and convert to uint8
         msg = AudioDataStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = self.frame_id
-        msg.audio.data = (
-            (data * 32767).astype(np.int16).tobytes()
-        )  # Convert to int16 and then to bytes
+        msg.audio.data = (data * 32767).astype(np.int16).tobytes()
         self.publisher.publish(msg)
 
-        # Create and publish AudioInfo
         info_msg = AudioInfo()
         info_msg.channels = self.channels
         info_msg.sample_rate = self.sample_rate
-
         self.info_publisher.publish(info_msg)
-        self.get_logger().debug("Published audio data and info.")
+
+    def destroy_node(self):
+        self.running = False
+        super().destroy_node()
 
 
 def main(args=None):
     rclpy.init(args=args)
     audio_recorder = AudioRecorder()
 
-    # Start recording
-    audio_recorder.record_audio()
+    try:
+        audio_recorder.record_audio()
+    except KeyboardInterrupt:
+        pass
 
+    audio_recorder.destroy_node()
     rclpy.shutdown()
 
 
