@@ -1,7 +1,6 @@
 import rclpy
 from rclpy.node import Node
 import sounddevice as sd
-import numpy as np
 import time
 from queue import Queue
 from threading import Thread
@@ -38,11 +37,13 @@ class AudioRecorder(Node):
         while True:
             sd._terminate()
             sd._initialize()
-            device_names = [device['name'] for device in sd.query_devices()]
+            device_names = [device["name"] for device in sd.query_devices()]
             if any(self.device in name for name in device_names):
                 self.get_logger().info(f"Audio device '{self.device}' found.")
                 break
-            self.get_logger().warn(f"Audio device '{self.device}' not found in\n{str(device_names)}.")
+            self.get_logger().warn(
+                f"Audio device '{self.device}' not found in\n{str(device_names)}."
+            )
             time.sleep(1.0)
 
     def record_audio(self):
@@ -61,7 +62,7 @@ class AudioRecorder(Node):
                 device=self.device,
                 callback=callback,
                 dtype="int16",
-                blocksize=self.sample_rate, # 1 second buffer
+                blocksize=self.sample_rate,  # 1 second buffer
             ):
                 while self.running:
                     rclpy.spin_once(self, timeout_sec=0.1)  # Keep the ROS 2 node alive
@@ -76,9 +77,14 @@ class AudioRecorder(Node):
             if not self.audio_queue.empty():
                 timestamp, data = self.audio_queue.get()
                 if self.timestamp_offset is None:
-                    self.timestamp_offset = self.get_clock().now().nanoseconds/1e9 - timestamp.inputBufferAdcTime
+                    self.timestamp_offset = (
+                        self.get_clock().now().nanoseconds / 1e9
+                        - timestamp.inputBufferAdcTime
+                    )
 
-                self.publish_audio(timestamp.inputBufferAdcTime + self.timestamp_offset, data)
+                self.publish_audio(
+                    timestamp.inputBufferAdcTime + self.timestamp_offset, data
+                )
 
     def publish_audio(self, timestamp, data):
         msg = AudioDataStamped()
